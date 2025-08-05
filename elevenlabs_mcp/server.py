@@ -81,6 +81,7 @@ mcp = FastMCP("ElevenLabs")
         output_directory (str, optional): Directory where files should be saved.
             Defaults to $HOME/Desktop if not provided.
         language: ISO 639-1 language code for the voice.
+        return_audio_content (bool, optional): If True, returns the audio as base64-encoded content instead of saving to a file. Defaults to False.
         output_format (str, optional): Output format of the generated audio. Formatted as codec_sample_rate_bitrate. So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32. MP3 with 192kbps bitrate requires you to be subscribed to Creator tier or above. PCM with 44.1kHz sample rate requires you to be subscribed to Pro tier or above. Note that the μ-law format (sometimes written mu-law, often approximated as u-law) is commonly used for Twilio audio inputs.
             Defaults to "mp3_44100_128". Must be one of:
             mp3_22050_32
@@ -103,7 +104,8 @@ mcp = FastMCP("ElevenLabs")
             opus_48000_192
 
     Returns:
-        Text content with the path to the output file and name of the voice used.
+        If return_audio_content is False: Text content with the path to the output file and name of the voice used.
+        If return_audio_content is True: Audio content with base64-encoded data and MIME type.
     """
 )
 def text_to_speech(
@@ -119,6 +121,7 @@ def text_to_speech(
     language: str = "en",
     output_format: str = "mp3_44100_128",
     model_id: str | None = None,
+    return_audio_content: bool = False,
 ):
     if text == "":
         make_error("Text is required.")
@@ -163,7 +166,31 @@ def text_to_speech(
         },
     )
     audio_bytes = b"".join(audio_data)
+    
+    # If return_audio_content is True, return audio as base64-encoded content
+    if return_audio_content:
+        # Determine MIME type based on output format
+        mime_type = "audio/mpeg"  # Default for MP3
+        if output_format.startswith("pcm"):
+            mime_type = "audio/wav"
+        elif output_format.startswith("ulaw"):
+            mime_type = "audio/basic"
+        elif output_format.startswith("alaw"):
+            mime_type = "audio/basic"
+        elif output_format.startswith("opus"):
+            mime_type = "audio/opus"
+        
+        # Convert audio bytes to base64
+        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        
+        # Return audio content in MCP format
+        return {
+            "type": "audio",
+            "data": audio_base64,
+            "mimeType": mime_type
+        }
 
+    # Original behavior: save to file
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path / output_file_name, "wb") as f:
         f.write(audio_bytes)
