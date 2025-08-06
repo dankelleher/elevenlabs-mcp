@@ -19,9 +19,8 @@ from io import BytesIO
 from typing import Literal
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
-from mcp.types import TextContent
+from mcp.types import TextContent, AudioContent
 from pydantic import BaseModel
-from typing import Literal
 from elevenlabs.client import ElevenLabs
 from elevenlabs_mcp.model import McpVoice, McpModel, McpLanguage
 from elevenlabs_mcp.utils import (
@@ -37,12 +36,6 @@ from elevenlabs.types.knowledge_base_locator import KnowledgeBaseLocator
 
 from elevenlabs import play
 from elevenlabs_mcp import __version__
-
-# Define AudioContent class following MCP pattern
-class AudioContent(BaseModel):
-    type: Literal["audio"]
-    data: str  # base64-encoded audio data
-    mimeType: str
 
 load_dotenv()
 api_key = os.getenv("ELEVENLABS_API_KEY")
@@ -131,6 +124,10 @@ def text_to_speech(
     model_id: str | None = None,
     return_audio_content: bool = False,
 ):
+    # Debug logging
+    import sys
+    print(f"DEBUG: text_to_speech called with return_audio_content={return_audio_content}", file=sys.stderr)
+    
     if text == "":
         make_error("Text is required.")
 
